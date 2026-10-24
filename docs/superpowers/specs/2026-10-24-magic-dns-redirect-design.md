@@ -44,3 +44,4 @@ iptables -t nat -A EASYTIER_DNS -p udp -m mark ! --mark 0x0/0xffffffff -j DNAT -
 - 用户开启私人 DNS（DoT）时查询走 853，不经过该规则。
 - IPv6-only DNS 网络（部分蜂窝网络）下 `xxx.et.net` 不可解析。
 - 若同时运行其它依赖自身 DNS 的代理/VPN，其查询也会被改写；提供 `dns_redirect_off` 开关关闭。
+- `et.net` 是真实注册的公共域名（实测关闭重定向时 `ace5.et.net` 解析到 13.248.169.48），切换开关后 netd 会缓存旧答案直到 TTL 过期；建议用 `--tld-dns-zone` 换成自用后缀。
