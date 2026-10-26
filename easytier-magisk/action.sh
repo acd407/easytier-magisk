@@ -1,25 +1,27 @@
 #!/data/adb/magisk/busybox sh
-
+#
+# 管理器里的「操作」按钮（KernelSU / Magisk 的 action.sh 接口）：重启 easytier 服务
+#
 MODDIR=${0%/*}
+IPTABLES=/system/bin/iptables
 
-# 从系统属性获取 CPU ABI
-ARCH=$(getprop ro.product.cpu.abi)
+if [ -f "$MODDIR/disable" ]; then
+    echo "模块已禁用（存在 $MODDIR/disable），不重启"
+    exit 0
+fi
 
-case "$ARCH" in
-    armeabi-v7a) ARCH="arm" ;;
-    arm64-v8a)   ARCH="arm64" ;;
-    x86)         ARCH="x86" ;;
-    x86_64)      ARCH="x64" ;;
-    *)           ARCH="unknown" ;;
-esac
+# 先干掉旧实例（run.sh 退出时会自己撤掉 DNS 规则），否则旧的后台守护会和新实例抢规则
+pkill -f "$MODDIR/run.sh" 2>/dev/null
+sleep 1
+pkill -f "$MODDIR/easytier/" 2>/dev/null
+sleep 1
 
-easytier_pids=$(pgrep -f "$MODDIR/easytier/$ARCH/easytier-core")
-echo "easytier_pids: $easytier_pids"
-kill -9 $easytier_pids
-
-setsid sh "$MODDIR/run.sh" &
-echo "服务已重启"
-
+setsid sh "$MODDIR/run.sh" >/dev/null 2>&1 &
 sleep 3
 
-cat $MODDIR/log/start.log
+echo "=== easytier-core ==="
+pgrep -af "$MODDIR/easytier/" || echo "(未启动)"
+echo "=== DNS 劫持规则（只应命中 *.et.net）==="
+$IPTABLES -t nat -S OUTPUT | grep 100.100.100.101 || echo "(没有规则)"
+echo "=== log/start.log（最后 30 行）==="
+tail -n 30 "$MODDIR/log/start.log"
